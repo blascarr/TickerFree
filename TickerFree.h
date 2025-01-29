@@ -22,22 +22,19 @@
  * SOFTWARE.
  */
 
-#ifndef TICKER_H
-#define TICKER_H
+#ifndef TICKERFREE_H
+#define TICKERFREE_H
 
 #include "Arduino.h"
 
 /** Ticker internal resolution
  *
- * @param MICROS default, the resolution is in micro seconds, max is 70 minutes, the real resolution is 4 microseconds at 16MHz CPU cycle
+ * @param MICROS default, the resolution is in micro seconds, max is 70 minutes,
+ * the real resolution is 4 microseconds at 16MHz CPU cycle
  * @param MILLIS set the resolution to millis, for longer cycles over 70 minutes
  *
  */
-enum resolution_t {
-	MICROS,
-	MILLIS,
-	MICROS_MICROS
-	};
+enum resolution_t { MICROS, MILLIS, MICROS_MICROS };
 
 /** Ticker status
  *
@@ -46,37 +43,37 @@ enum resolution_t {
  * @param PAUSED ticker is paused
  *
  */
-enum status_t {
-	STOPPED,
-	RUNNING,
-	PAUSED};
+enum status_t { STOPPED, RUNNING, PAUSED };
 
 #if defined(__arm__) || defined(ESP8266) || defined(ESP32)
 #include <functional>
-using fptr = std::function<void()>;
+using CallbackType = std::function<void()>;
 #else
-typedef void (*fptr)();
+typedef void (*CallbackType)();
 #endif
 
+template <typename... Args> class TickerFree {
+  protected:
+	using CallbackType = std::function<void(Args...)>;
+	CallbackType callback;
 
-class Ticker {
-
-public:
-
+  public:
 	/** create a Ticker object
 	 *
 	 * @param callback the name of the function to call
 	 * @param timer interval length in ms or us
 	 * @param repeat default 0 -> endless, repeat > 0 -> number of repeats
-	 * @param resolution default MICROS for tickers under 70min, use MILLIS for tickers over 70 min
+	 * @param resolution default MICROS for tickers under 70min, use MILLIS for
+	 * tickers over 70 min
 	 *
 	 */
-	Ticker(fptr callback, uint32_t timer, uint32_t repeat = 0, resolution_t resolution = MICROS);
+	TickerFree(CallbackType callback, uint32_t timer, uint32_t repeat = 0,
+			   resolution_t resolution = MICROS);
 
 	/** destructor for the Ticker object
 	 *
 	 */
-	~Ticker();
+	~TickerFree();
 
 	/** start the ticker
 	 *
@@ -98,21 +95,23 @@ public:
 	 */
 	void stop();
 
-	/** must to be called in the main loop(), it will check the Ticker, and if necessary, will run the callback
+	/** must to be called in the main loop(), it will check the Ticker, and if
+	 * necessary, will run the callback
 	 *
 	 */
 	void update();
+	void trigger(Args... args);
 
 	/**
 	 * @brief set the interval timer
-	 * 
+	 *
 	 * @param timer interval length in ms or us
 	 */
 	void interval(uint32_t timer);
 
 	/**
 	 * @brief get the interval time
-	 * 
+	 *
 	 * @returns the interval time
 	 */
 	uint32_t interval();
@@ -126,7 +125,8 @@ public:
 
 	/** time remaining to the next tick
 	 *
-	 * @returns the remaining time to the next tick in ms or us depending from mode
+	 * @returns the remaining time to the next tick in ms or us depending from
+	 * mode
 	 *
 	 */
 	uint32_t remaining();
@@ -143,8 +143,9 @@ public:
 	 *
 	 */
 	uint32_t counter();
+	void setCallback(CallbackType cb) { callback = cb; }
 
-private:
+  private:
 	bool tick();
 	bool enabled;
 	uint32_t timer;
@@ -152,7 +153,6 @@ private:
 	resolution_t resolution = MICROS;
 	uint32_t counts;
 	status_t status;
-	fptr callback;
 	uint32_t lastTime;
 	uint32_t diffTime;
 };
