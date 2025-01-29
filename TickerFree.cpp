@@ -84,13 +84,6 @@ void TickerFree::update() {
 		callback();
 }
 
-void TickerFree::trigger(Args... args) {
-	if (tick())
-		if (callback) {
-			callback(args...);
-		}
-}
-
 bool TickerFree::tick() {
 	if (!enabled)
 		return false;

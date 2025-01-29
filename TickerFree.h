@@ -100,7 +100,116 @@ template <typename... Args> class TickerFree {
 	 *
 	 */
 	void update();
-	void trigger(Args... args);
+	void trigger(Args... args) {
+		if (tick())
+			if (callback) {
+				callback(args...);
+			}
+	};
+
+	/**
+	 * @brief set the interval timer
+	 *
+	 * @param timer interval length in ms or us
+	 */
+	void interval(uint32_t timer);
+
+	/**
+	 * @brief get the interval time
+	 *
+	 * @returns the interval time
+	 */
+	uint32_t interval();
+
+	/** actual elapsed time
+	 *
+	 * @returns the elapsed time after the last tick
+	 *
+	 */
+	uint32_t elapsed();
+
+	/** time remaining to the next tick
+	 *
+	 * @returns the remaining time to the next tick in ms or us depending from
+	 * mode
+	 *
+	 */
+	uint32_t remaining();
+
+	/** get the state of the ticker
+	 *
+	 * @returns the state of the ticker: STOPPED, RUNNING or PAUSED
+	 */
+	status_t state();
+
+	/** get the numbers of executed repeats
+	 *
+	 * @returns the number of executed repeats
+	 *
+	 */
+	uint32_t counter();
+	void setCallback(CallbackType cb) { callback = cb; }
+
+  private:
+	bool tick();
+	bool enabled;
+	uint32_t timer;
+	uint32_t repeat;
+	resolution_t resolution = MICROS;
+	uint32_t counts;
+	status_t status;
+	uint32_t lastTime;
+	uint32_t diffTime;
+};
+
+template <> class TickerFree<> {
+  protected:
+	using CallbackType = std::function<void()>;
+	CallbackType callback;
+
+  public:
+	/** create a Ticker object
+	 *
+	 * @param callback the name of the function to call
+	 * @param timer interval length in ms or us
+	 * @param repeat default 0 -> endless, repeat > 0 -> number of repeats
+	 * @param resolution default MICROS for tickers under 70min, use MILLIS for
+	 * tickers over 70 min
+	 *
+	 */
+	TickerFree(CallbackType callback, uint32_t timer, uint32_t repeat = 0,
+			   resolution_t resolution = MICROS);
+
+	/** destructor for the Ticker object
+	 *
+	 */
+	~TickerFree();
+
+	/** start the ticker
+	 *
+	 */
+	void start();
+
+	/** resume the ticker. If not started, it will start it.
+	 *
+	 */
+	void resume();
+
+	/** pause the ticker
+	 *
+	 */
+	void pause();
+
+	/** stops the ticker
+	 *
+	 */
+	void stop();
+
+	/** must to be called in the main loop(), it will check the Ticker, and if
+	 * necessary, will run the callback
+	 *
+	 */
+	void update();
 
 	/**
 	 * @brief set the interval timer
