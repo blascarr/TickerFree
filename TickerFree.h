@@ -73,7 +73,7 @@ template <typename... Args> class TickerFree {
 	/** destructor for the Ticker object
 	 *
 	 */
-	~TickerFree();
+	~TickerFree() {};
 
 	/** start the ticker
 	 *
@@ -178,84 +178,153 @@ template <> class TickerFree<> {
 	 *
 	 */
 	TickerFree(CallbackType callback, uint32_t timer, uint32_t repeat = 0,
-			   resolution_t resolution = MICROS);
+			   resolution_t resolution = MICROS)
+		: callback(callback), timer(timer), repeat(repeat),
+		  resolution(resolution), enabled(false), lastTime(0), counts(0) {
+		if (resolution == MICROS)
+			timer *= 1000;
+		;
+	}
 
 	/** destructor for the Ticker object
 	 *
 	 */
-	~TickerFree();
+	~TickerFree() {};
 
 	/** start the ticker
 	 *
 	 */
-	void start();
+	void start() {
+		if (callback == NULL)
+			return;
+		if (resolution == MILLIS)
+			lastTime = millis();
+		else
+			lastTime = micros();
+		enabled = true;
+		counts = 0;
+		status = RUNNING;
+	};
 
 	/** resume the ticker. If not started, it will start it.
 	 *
 	 */
-	void resume();
+	void resume() {
+		if (callback == NULL)
+			return;
+		if (resolution == MILLIS)
+			lastTime = millis() - diffTime;
+		else
+			lastTime = micros() - diffTime;
+		if (status == STOPPED)
+			counts = 0;
+		enabled = true;
+		status = RUNNING;
+	};
 
 	/** pause the ticker
 	 *
 	 */
-	void pause();
+	void pause() {
+		if (resolution == MILLIS)
+			diffTime = millis() - lastTime;
+		else
+			diffTime = micros() - lastTime;
+		enabled = false;
+		status = PAUSED;
+	};
 
 	/** stops the ticker
 	 *
 	 */
-	void stop();
+	void stop() {
+		enabled = false;
+		counts = 0;
+		status = STOPPED;
+	};
 
-	/** must to be called in the main loop(), it will check the Ticker, and if
-	 * necessary, will run the callback
+	/** must to be called in the main loop(), it will check the Ticker, and
+	 * if necessary, will run the callback
 	 *
 	 */
-	void update();
+	void update() {
+		if (tick())
+			callback();
+	};
 
 	/**
 	 * @brief set the interval timer
 	 *
 	 * @param timer interval length in ms or us
 	 */
-	void interval(uint32_t timer);
+	void interval(uint32_t timer) {
+		if (resolution == MICROS)
+			timer *= 1000;
+		this->timer = timer;
+	};
 
 	/**
 	 * @brief get the interval time
 	 *
 	 * @returns the interval time
 	 */
-	uint32_t interval();
+	uint32_t interval() {
+		if (resolution == MILLIS)
+			return timer / 1000;
+		else
+			return timer;
+	};
 
 	/** actual elapsed time
 	 *
 	 * @returns the elapsed time after the last tick
 	 *
 	 */
-	uint32_t elapsed();
+	uint32_t elapsed() {
+		if (resolution == MILLIS)
+			return millis() - lastTime;
+		else
+			return micros() - lastTime;
+	};
 
 	/** time remaining to the next tick
 	 *
-	 * @returns the remaining time to the next tick in ms or us depending from
-	 * mode
+	 * @returns the remaining time to the next tick in ms or us depending
+	 * from mode
 	 *
 	 */
-	uint32_t remaining();
+	uint32_t remaining() { return timer - elapsed(); };
 
 	/** get the state of the ticker
 	 *
 	 * @returns the state of the ticker: STOPPED, RUNNING or PAUSED
 	 */
-	status_t state();
+	status_t state() { return status; };
 
 	/** get the numbers of executed repeats
 	 *
 	 * @returns the number of executed repeats
 	 *
 	 */
-	uint32_t counter();
+	uint32_t counter() { return counts; };
 	void setCallback(CallbackType cb) { callback = cb; }
 
   private:
-	bool tick();
+	bool tick() {
+		if (!enabled)
+			return false;
+		uint32_t currentTime = (resolution == MILLIS) ? millis() : micros();
+		if ((currentTime - lastTime) >= timer) {
+			lastTime = currentTime;
+			if (repeat - counts == 1 && counts != 0xFFFFFFFF) {
+				enabled = false;
+				status = STOPPED;
+			}
+			counts++;
+			return true;
+		}
+		return false;
+	};
 	bool enabled;
 	uint32_t timer;
 	uint32_t repeat;

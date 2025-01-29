@@ -24,8 +24,9 @@
 
 #include "TickerFree.h"
 
-TickerFree::TickerFree(CallbackType callback, uint32_t timer, uint32_t repeat,
-					   resolution_t resolution) {
+template <typename... Args>
+TickerFree<Args...>::TickerFree(CallbackType callback, uint32_t timer,
+								uint32_t repeat, resolution_t resolution) {
 	this->resolution = resolution;
 	if (resolution == MICROS)
 		timer = timer * 1000;
@@ -37,9 +38,7 @@ TickerFree::TickerFree(CallbackType callback, uint32_t timer, uint32_t repeat,
 	counts = 0;
 }
 
-TickerFree::~TickerFree() {}
-
-void TickerFree::start() {
+template <typename... Args> void TickerFree<Args...>::start() {
 	if (callback == NULL)
 		return;
 	if (resolution == MILLIS)
@@ -51,7 +50,7 @@ void TickerFree::start() {
 	status = RUNNING;
 }
 
-void TickerFree::resume() {
+template <typename... Args> void TickerFree<Args...>::resume() {
 	if (callback == NULL)
 		return;
 	if (resolution == MILLIS)
@@ -64,13 +63,13 @@ void TickerFree::resume() {
 	status = RUNNING;
 }
 
-void TickerFree::stop() {
+template <typename... Args> void TickerFree<Args...>::stop() {
 	enabled = false;
 	counts = 0;
 	status = STOPPED;
 }
 
-void TickerFree::pause() {
+template <typename... Args> void TickerFree<Args...>::pause() {
 	if (resolution == MILLIS)
 		diffTime = millis() - lastTime;
 	else
@@ -79,12 +78,12 @@ void TickerFree::pause() {
 	status = PAUSED;
 }
 
-void TickerFree::update() {
+template <typename... Args> void TickerFree<Args...>::update() {
 	if (tick())
 		callback();
 }
 
-bool TickerFree::tick() {
+template <typename... Args> bool TickerFree<Args...>::tick() {
 	if (!enabled)
 		return false;
 	uint32_t currentTime = (resolution == MILLIS) ? millis() : micros();
@@ -100,28 +99,34 @@ bool TickerFree::tick() {
 	return false;
 }
 
-void TickerFree::interval(uint32_t timer) {
+template <typename... Args> void TickerFree<Args...>::interval(uint32_t timer) {
 	if (resolution == MICROS)
 		timer *= 1000;
 	this->timer = timer;
 }
 
-uint32_t TickerFree::interval() {
+template <typename... Args> uint32_t TickerFree<Args...>::interval() {
 	if (resolution == MILLIS)
 		return timer / 1000;
 	else
 		return timer;
 }
 
-uint32_t TickerFree::elapsed() {
+template <typename... Args> uint32_t TickerFree<Args...>::elapsed() {
 	if (resolution == MILLIS)
 		return millis() - lastTime;
 	else
 		return micros() - lastTime;
 }
 
-uint32_t TickerFree::remaining() { return timer - elapsed(); }
+template <typename... Args> uint32_t TickerFree<Args...>::remaining() {
+	return timer - elapsed();
+}
 
-status_t TickerFree::state() { return status; }
+template <typename... Args> status_t TickerFree<Args...>::state() {
+	return status;
+}
 
-uint32_t TickerFree::counter() { return counts; }
+template <typename... Args> uint32_t TickerFree<Args...>::counter() {
+	return counts;
+}
